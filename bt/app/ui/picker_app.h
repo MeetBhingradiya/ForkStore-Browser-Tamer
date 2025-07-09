@@ -64,12 +64,16 @@ namespace bt::ui {
         bool is_open{true};
 
         // calculated
-        std::vector<bt::browser> browsers;
-        int active_browser_idx{-1};
+        struct ProfileCard {
+            std::shared_ptr<bt::browser_instance> instance;
+            std::string browser_icon_path;
+            std::string profile_name;
+            std::string profile_icon_path;
+            bool is_incognito{false};
+        };
+        std::vector<ProfileCard> profile_cards;
         int active_profile_idx{-1};
-        connection_box active_browser_cb;        // active browser coordinates
         std::vector<connection_box> profiles_cb; // active profile coordinates
-        float browser_bar_left_pad{0};
 
         bool action_menu_hovered{false};
         std::vector<action_menu_item> action_menu_items{
@@ -83,9 +87,7 @@ namespace bt::ui {
 
         bool run_frame();
         void render_action_menu(float x, float y);
-        void render_browser_bar();
-        void render_profile_bar();
-        void render_chrome_style_profiles(bt::browser& b);
+        void render_profile_grid();
         void render_connection_box();
 
         /**
