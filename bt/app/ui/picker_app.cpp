@@ -18,7 +18,7 @@ namespace w = grey::widgets;
 namespace bt::ui {
     picker_app::picker_app(const string& url)
         : url{url}, title{APP_LONG_NAME " - Pick"},
-        app{grey::app::make(title, 600, 500)}, wnd_main{ title, &is_open } {
+        app{grey::app::make(title, 1100, 800)}, wnd_main{ title, &is_open } {
         app->initial_theme_id = g_config.theme_id;
         app->win32_can_resize = false;
         app->win32_center_on_screen = true;
@@ -57,8 +57,8 @@ namespace bt::ui {
             // Set window size for large grid
             int cols = ProfilesPerRow;
             int rows = (int(profile_cards.size()) + cols - 1) / cols;
-            float grid_w = cols * ProfileCardSize + (cols + 1) * ProfileCardSpacing;
-            float grid_h = rows * ProfileCardSize + (rows + 1) * ProfileCardSpacing + 80;
+            float grid_w = cols * 180.0f + (cols + 1) * 40.0f;
+            float grid_h = rows * 180.0f + (rows + 1) * 40.0f + 120.0f;
             app->resize_main_viewport(grid_w, grid_h);
             wnd_main.no_titlebar().no_resize().border(0).fill_viewport().no_scroll();
         };
@@ -116,14 +116,14 @@ namespace bt::ui {
     void picker_app::render_profile_grid() {
         int cols = ProfilesPerRow;
         int rows = (int(profile_cards.size()) + cols - 1) / cols;
-        float card_size = 120.0f * app->scale; // Larger cards
-        float card_padding = 16.0f * app->scale;
-        float icon_size = 90.0f * app->scale;
-        float badge_size = 32.0f * app->scale;
-        float spacing = 24.0f * app->scale;
+        float card_size = 160.0f * app->scale; // Even larger cards
+        float card_padding = 28.0f * app->scale;
+        float icon_size = 120.0f * app->scale;
+        float badge_size = 40.0f * app->scale;
+        float spacing = 40.0f * app->scale;
         float grid_w = cols * card_size + (cols + 1) * spacing;
         float start_x = (ImGui::GetWindowWidth() - grid_w) / 2.0f + spacing;
-        float y = 60.0f * app->scale;
+        float y = 90.0f * app->scale;
         if(profiles_cb.size() != profile_cards.size()) profiles_cb.resize(profile_cards.size());
         int idx = 0;
         for(int row = 0; row < rows; row++) {
@@ -140,9 +140,9 @@ namespace bt::ui {
                 bool is_selected = idx == active_profile_idx;
                 ImU32 card_bg = is_selected ? IM_COL32(60, 132, 246, 255) : (is_hovered ? IM_COL32(60,60,60,255) : IM_COL32(48,49,52,255));
                 ImU32 border = is_selected ? IM_COL32(60, 132, 246, 255) : IM_COL32(80,80,80,255);
-                float rounding = 18.0f * app->scale;
+                float rounding = 28.0f * app->scale;
                 dl->AddRectFilled(card_min, card_max, card_bg, rounding);
-                dl->AddRect(card_min, card_max, border, rounding, 0, 2.0f);
+                dl->AddRect(card_min, card_max, border, rounding, 0, 3.0f);
                 // Profile icon
                 float icon_x = card_x + (card_size - icon_size) / 2;
                 float icon_y = card_y + card_padding;
@@ -158,7 +158,7 @@ namespace bt::ui {
                 w::set_pos(badge_x, badge_y);
                 w::rounded_image(*app, card.browser_icon_path, badge_size, badge_size, badge_size / 2);
                 // Profile name
-                float name_y = icon_y + icon_size + card_padding / 2;
+                float name_y = icon_y + icon_size + card_padding / 1.5f;
                 std::string display_name = card.profile_name;
                 if(display_name.length() > 16) display_name = display_name.substr(0, 13) + "...";
                 ImVec2 text_size = ImGui::CalcTextSize(display_name.c_str());
