@@ -16,9 +16,9 @@ using namespace std;
 namespace w = grey::widgets;
 
 namespace bt::ui {
-    picker_app::picker_app(const string& url) 
+    picker_app::picker_app(const string& url)
         : url{url}, title{APP_LONG_NAME " - Pick"},
-        app{grey::app::make(title, WindowMinWidth, WindowHeight)}, wnd_main{ title, &is_open } {
+        app{grey::app::make(title, WindowMinWidth, WindowHeight)}, wnd_main{title, &is_open} {
         app->initial_theme_id = g_config.theme_id;
         //app->load_icon_font = false;
         app->win32_can_resize = false;
@@ -86,7 +86,7 @@ namespace bt::ui {
             wnd_width = (BrowserSquareSize + style.WindowPadding.x * 2 / app->scale) * browsers.size() +
                 style.WindowPadding.x * 2 / app->scale;
             wnd_width = max(wnd_width, WindowMinWidth);
-            
+
             // Ensure window is wide enough for profile cards
             if(max_instances > 1) {
                 int profile_cols = min(max_instances, ProfilesPerRow);
@@ -119,8 +119,7 @@ namespace bt::ui {
 
     }
 
-    picker_app::~picker_app() {
-    }
+    picker_app::~picker_app() {}
 
     std::shared_ptr<bt::browser_instance> picker_app::run() {
         app->run([this](const grey::app& app) {
@@ -232,7 +231,7 @@ namespace bt::ui {
         // draw menu items in a circle
         if(action_menu_hovered) {
             ImU32 col_dot = w::imcol32(ImGuiCol_Text);
-            
+
             float angle = 0; // PI is half a circle
 
             for(action_menu_item& mi : action_menu_items) {
@@ -385,7 +384,7 @@ namespace bt::ui {
         // Draw connection lines to profile cards
         for(int i = 0; i < profiles_cb.size(); i++) {
             auto& cb = profiles_cb[i];
-            
+
             // Profile card connection point (top center)
             ImVec2 profile_point{
                 (cb.min.x + cb.max.x) / 2,
@@ -393,8 +392,8 @@ namespace bt::ui {
 
             // Draw connection line
             float thickness = i == active_profile_idx ? 3.0f : 1.0f;
-            ImU32 line_color = i == active_profile_idx ? 
-                w::imcol32(ImGuiCol_ButtonActive) : 
+            ImU32 line_color = i == active_profile_idx ?
+                w::imcol32(ImGuiCol_ButtonActive) :
                 w::imcol32(ImGuiCol_Border);
 
             // Simple straight line for now - can be made curved later
@@ -404,19 +403,6 @@ namespace bt::ui {
             dl->AddCircleFilled(browser_point, 2, col_dot);
             dl->AddCircleFilled(profile_point, 2, col_dot);
         }
-    }
-
-        //ImVec2 p0{min.x + 50, min.y + 50};
-        //ImVec2 p1{min.x + 50, min.y + 100};
-        //ImVec2 p2{min.x + 100, min.y + 250};
-        //ImVec2 p3{min.x + 100, min.y + 300};
-
-        //dl->AddCircleFilled(p0, 5, IM_COL32(255, 0, 0, 255), 32);
-        //dl->AddCircleFilled(p1, 5, IM_COL32(255, 0, 0, 255), 32);
-        //dl->AddCircleFilled(p2, 5, IM_COL32(255, 0, 0, 255), 32);
-        //dl->AddCircleFilled(p3, 5, IM_COL32(255, 0, 0, 255), 32);
-
-        //dl->AddBezierCubic(p0, p1, p2, p3, IM_COL32(0, 255, 0, 255), 2, 32);
     }
 
     void picker_app::make_decision(std::shared_ptr<bt::browser_instance> decision) {
@@ -441,7 +427,7 @@ namespace bt::ui {
         float icon_size = ProfileIconSize * app->scale;
         float badge_size = BrowserBadgeSize * app->scale;
         float spacing = ProfileCardSpacing * app->scale;
-        
+
         float x, y;
         w::get_pos(x, y);
 
@@ -449,11 +435,11 @@ namespace bt::ui {
         int profile_count = b.instances.size();
         int rows = (profile_count + ProfilesPerRow - 1) / ProfilesPerRow;
         int cols = min(profile_count, ProfilesPerRow);
-        
+
         // Calculate total width and centering
         float total_width = cols * card_size + (cols - 1) * spacing;
         float start_x = (wnd_width - total_width) / 2;
-        
+
         // Resize profiles_cb to match instance count
         if(profiles_cb.size() != b.instances.size()) {
             profiles_cb.resize(b.instances.size());
@@ -463,98 +449,98 @@ namespace bt::ui {
         for(int row = 0; row < rows; row++) {
             for(int col = 0; col < cols && idx < profile_count; col++) {
                 auto& profile = b.instances[idx];
-                
+
                 float card_x = start_x + col * (card_size + spacing);
                 float card_y = y + row * (card_size + spacing);
-                
+
                 // Draw profile card background
                 w::set_pos(card_x, card_y);
                 ImGui::Dummy(ImVec2(card_size, card_size));
-                
+
                 ImDrawList* dl = ImGui::GetWindowDrawList();
                 ImVec2 card_min = ImGui::GetItemRectMin();
                 ImVec2 card_max = ImGui::GetItemRectMax();
-                
+
                 // Card background and border
                 bool is_hovered = w::is_hovered();
                 bool is_selected = idx == active_profile_idx;
                 profile->ui_is_hovered = is_hovered;
-                
-                ImU32 card_bg_color = is_selected ? 
-                    w::imcol32(ImGuiCol_ButtonActive) : 
+
+                ImU32 card_bg_color = is_selected ?
+                    w::imcol32(ImGuiCol_ButtonActive) :
                     (is_hovered ? w::imcol32(ImGuiCol_ButtonHovered) : w::imcol32(ImGuiCol_Button));
-                
-                ImU32 border_color = is_selected ? 
-                    w::imcol32(ImGuiCol_ButtonActive) : 
+
+                ImU32 border_color = is_selected ?
+                    w::imcol32(ImGuiCol_ButtonActive) :
                     w::imcol32(ImGuiCol_Border);
-                
+
                 // Draw card with rounded corners
                 float rounding = 8.0f * app->scale;
                 dl->AddRectFilled(card_min, card_max, card_bg_color, rounding);
                 dl->AddRect(card_min, card_max, border_color, rounding, 0, 1.0f);
-                
+
                 // Draw profile icon (centered in card)
                 float icon_x = card_x + (card_size - icon_size) / 2;
                 float icon_y = card_y + card_padding;
-                
+
                 w::set_pos(icon_x, icon_y);
-                
+
                 if(profile->is_incognito) {
                     w::image(*app, "incognito", icon_size, icon_size);
                 } else {
                     string path = profile->get_best_icon_path();
                     w::rounded_image(*app, path, icon_size, icon_size, icon_size / 2);
                 }
-                
+
                 // Draw browser badge in bottom-left corner
                 float badge_x = card_x + card_padding;
                 float badge_y = card_y + card_size - badge_size - card_padding;
-                
+
                 w::set_pos(badge_x, badge_y);
                 string browser_icon_path = b.get_best_icon_path();
                 w::rounded_image(*app, browser_icon_path, badge_size, badge_size, badge_size / 2);
-                
+
                 // Draw profile name below icon
                 float name_y = icon_y + icon_size + card_padding / 2;
                 float name_height = ImGui::GetTextLineHeight();
-                
+
                 // Truncate long names
                 string display_name = profile->name;
                 if(display_name.length() > 12) {
                     display_name = display_name.substr(0, 9) + "...";
                 }
-                
+
                 // Center text horizontally
                 ImVec2 text_size = ImGui::CalcTextSize(display_name.c_str());
                 float text_x = card_x + (card_size - text_size.x) / 2;
-                
+
                 w::set_pos(text_x, name_y);
                 ImGui::TextUnformatted(display_name.c_str());
-                
+
                 // Handle interactions
                 w::set_pos(card_x, card_y);
                 ImGui::Dummy(ImVec2(card_size, card_size));
-                
+
                 if(is_hovered) {
                     active_profile_idx = idx;
                     ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 }
-                
+
                 w::tooltip(profile->name);
-                
+
                 bool is_keyed = keyboard_selection_idx == idx;
                 bool is_clicked = w::is_leftclicked();
                 if(is_clicked || is_keyed) {
                     make_decision(profile);
                 }
-                
+
                 // Store card bounds for connection lines
                 profiles_cb[idx] = {card_min, card_max};
-                
+
                 idx++;
             }
         }
-        
+
         // Update window position after profile grid
         w::set_pos(0, y + rows * (card_size + spacing));
     }
