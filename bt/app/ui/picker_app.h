@@ -41,6 +41,15 @@ namespace bt::ui {
         const float ProfileSquarePadding = 5.0f;
         const float InactiveProfileSquarePadding = 7.0f;
         const float ActionSquareSize = 20.0f;
+        
+        // Chrome-style profile selector constants
+        const float ProfileCardSize = 80.0f;
+        const float ProfileCardPadding = 8.0f;
+        const float ProfileIconSize = 64.0f;
+        const float BrowserBadgeSize = 20.0f;
+        const float ProfileCardSpacing = 12.0f;
+        const int ProfilesPerRow = 4;
+        
         const float WindowMinWidth = BrowserSquareSize * 6;
         const float WindowHeight = BrowserSquareSize + ProfileSquareSize + 80;
         float wnd_width;
@@ -76,6 +85,7 @@ namespace bt::ui {
         void render_action_menu(float x, float y);
         void render_browser_bar();
         void render_profile_bar();
+        void render_chrome_style_profiles(bt::browser& b);
         void render_connection_box();
 
         /**

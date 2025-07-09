@@ -1,5 +1,6 @@
 #include "picker_app.h"
 #include <memory>
+#include <algorithm>
 #include "fss.h"
 #include "../../globals.h"
 #include "../../res.inl"
@@ -85,11 +86,27 @@ namespace bt::ui {
             wnd_width = (BrowserSquareSize + style.WindowPadding.x * 2 / app->scale) * browsers.size() +
                 style.WindowPadding.x * 2 / app->scale;
             wnd_width = max(wnd_width, WindowMinWidth);
+            
+            // Ensure window is wide enough for profile cards
+            if(max_instances > 1) {
+                int profile_cols = min(max_instances, ProfilesPerRow);
+                float profile_width = profile_cols * ProfileCardSize + (profile_cols - 1) * ProfileCardSpacing + ProfileCardSpacing * 2;
+                wnd_width = max(wnd_width, profile_width);
+            }
+
+            // calculate window height based on maximum profiles
+            float base_height = BrowserSquareSize + 80; // URL bar + browser bar + padding
+            float profile_height = 0;
+            if(max_instances > 1) {
+                int profile_rows = (max_instances + ProfilesPerRow - 1) / ProfilesPerRow;
+                profile_height = profile_rows * (ProfileCardSize + ProfileCardSpacing) + ProfileCardSpacing * 2;
+            }
+            float total_height = base_height + profile_height;
 
             // calculate lef pad so browsers look centered
             browser_bar_left_pad = (wnd_width - (BrowserSquareSize * browsers.size())) / 2 * app->scale;
 
-            app->resize_main_viewport(wnd_width, WindowHeight);
+            app->resize_main_viewport(wnd_width, total_height);
 
             wnd_main
                 //.size(wnd_width, wnd_height_normal)
@@ -347,133 +364,47 @@ namespace bt::ui {
             auto& b = browsers[active_browser_idx];
             if(b.instances.size() > 1) {
                 has_profile_bar = true;
-                w::move_pos(0, ProfileSquarePadding * app->scale);  // some distance
+                w::move_pos(0, ProfileSquarePadding * app->scale * 2);  // some distance from browser bar
 
-                // find perfect position for profiles
-                float wnd_left = ImGui::GetWindowPos().x;
-                float wnd_width = ImGui::GetWindowWidth();
-                float browser_mid_x = active_browser_cb.min.x + BrowserSquareSize * app->scale / 2 - wnd_left;
-                float total_bar_width = ProfileSquareSize * b.instances.size() * app->scale;
-
-                float global_pad_left = browser_mid_x - total_bar_width / 2;
-                if(global_pad_left < 0)
-                    global_pad_left = 0;
-                else if(global_pad_left + total_bar_width > wnd_width)
-                    global_pad_left = wnd_width - total_bar_width;
-
-                float sq_size = ProfileSquareSize * app->scale;
-                float pad = ProfileSquarePadding * app->scale;
-                float pad1 = InactiveProfileSquarePadding * app->scale;
-                float full_icon_size = sq_size - pad * 2;
-                float full_icon_size1 = sq_size - pad1 * 2;
-                float x, y;
-                w::get_pos(x, y);
-
-                {
-                    // calculate left pad so profiles look centered
-                    //float window_width = ImGui::GetWindowWidth();
-                    //float browser_bar_pad = (window_width / app->scale - (ProfileSquareSize * b.instances.size())) / 2;
-
-                    int idx{0};
-                    if(profiles_cb.size() != b.instances.size()) {
-                        profiles_cb.resize(b.instances.size());
-                    }
-                    for(auto& c : b.instances) {
-                        float box_x_start = sq_size * idx + global_pad_left;
-                        float box_y_start = y;
-
-                        w::set_pos(box_x_start, box_y_start);
-
-                        {
-                            w::group g;
-                            g.render();
-
-                            ImGui::Dummy(ImVec2(sq_size, sq_size));
-                            w::set_pos(box_x_start, box_y_start);
-
-                            bool big = c->ui_is_hovered || idx == active_profile_idx;
-                            float isz = big ? full_icon_size : full_icon_size1;
-                            float mpd = big ? pad : pad1;
-                            w::move_pos(mpd, mpd);
-
-                            if(c->is_incognito) {
-                                w::image(*app, "incognito", isz, isz);
-                            } else {
-                                string path = c->get_best_icon_path();
-                                w::rounded_image(*app, path, isz, isz, isz / 2);
-                            }
-                        }
-
-                        c->ui_is_hovered = w::is_hovered();
-
-                        if(c->ui_is_hovered) {
-                            active_profile_idx = idx;
-                            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                        }
-                        w::tooltip(c->name);
-                        bool is_keyed = keyboard_selection_idx == idx;
-                        bool is_moused = w::is_leftclicked();
-                        if(is_moused || is_keyed) {
-                            make_decision(c);
-                        }
-
-                        profiles_cb[idx] = {ImGui::GetItemRectMin(), ImGui::GetItemRectMax()};
-
-                        if(idx < (b.instances.size() - 1)) {
-                            w::sl();
-                        }
-
-                        idx++;
-                    }
-                }
+                render_chrome_style_profiles(b);
             }
         }
-    
-        // resize window to fit profiles, or cut it back to normal
-        //if(have_bar == wnd_height_is_normal) {
-        //    wnd_height_is_normal = !have_bar;
-        //    app->resize_main_viewport(wnd_width, wnd_height_is_normal ? wnd_height_normal : wnd_height_profiles);
-        //    //wnd_main.resize(wnd_width, wnd_height_is_normal ? wnd_height_normal : wnd_height_profiles);
-        //}
     }
 
     void picker_app::render_connection_box() {
-        if(active_browser_cb.min.x == 0 || active_browser_idx == -1) return;
+        if(active_browser_cb.min.x == 0 || active_browser_idx == -1 || !has_profile_bar) return;
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        //ImDrawList* dl = ImGui::GetBackgroundDrawList();
-
-        ImU32 col_box = w::imcol32(ImGuiCol_Border);
         ImU32 col_dot = w::imcol32(ImGuiCol_Text);
 
-        //dl->AddRect(active_browser_cb.min, active_browser_cb.max, col_box, 5, 0);
+        // calculate browser connection point (bottom center)
+        ImVec2 browser_point{
+            (active_browser_cb.min.x + active_browser_cb.max.x) / 2,
+            active_browser_cb.max.y};
 
-        // calculate dots
-        ImVec2 p0{
-            (active_browser_cb.max.x - BrowserSquareSize * app->scale / 2),
-            active_browser_cb.max.y - (InactiveBrowserSquarePadding / 2) * app->scale};
-
-        dl->AddCircleFilled(p0, 2, col_dot);
-
+        // Draw connection lines to profile cards
         for(int i = 0; i < profiles_cb.size(); i++) {
             auto& cb = profiles_cb[i];
-            ImVec2 p4{
+            
+            // Profile card connection point (top center)
+            ImVec2 profile_point{
                 (cb.min.x + cb.max.x) / 2,
-                cb.min.y + (InactiveProfileSquarePadding / 2) * app->scale};
-            dl->AddCircleFilled(p4, 2, col_dot);
+                cb.min.y};
 
-            // draw connecting bezier curve
-            ImVec2 p1{p0.x, p0.y + BrowserSquarePadding * app->scale};
-            ImVec2 p2{p4.x, p4.y - ProfileSquarePadding * app->scale};
+            // Draw connection line
+            float thickness = i == active_profile_idx ? 3.0f : 1.0f;
+            ImU32 line_color = i == active_profile_idx ? 
+                w::imcol32(ImGuiCol_ButtonActive) : 
+                w::imcol32(ImGuiCol_Border);
 
-            // comment out to see orientation dots
-            //dl->AddCircleFilled(p1, 2, col_dot);
-            //dl->AddCircleFilled(p2, 2, col_dot);
+            // Simple straight line for now - can be made curved later
+            dl->AddLine(browser_point, profile_point, line_color, thickness);
 
-            float thickness = i == active_profile_idx ? 3 : 1;
-
-            dl->AddBezierCubic(p0, p1, p2, p4, col_dot, thickness, 32);
+            // Draw small dots at connection points
+            dl->AddCircleFilled(browser_point, 2, col_dot);
+            dl->AddCircleFilled(profile_point, 2, col_dot);
         }
+    }
 
         //ImVec2 p0{min.x + 50, min.y + 50};
         //ImVec2 p1{min.x + 50, min.y + 100};
@@ -502,5 +433,129 @@ namespace bt::ui {
             win32::shell::exec(fmt::format("mailto:?body={}", url), "");
             is_open = false;
         }
+    }
+
+    void picker_app::render_chrome_style_profiles(bt::browser& b) {
+        float card_size = ProfileCardSize * app->scale;
+        float card_padding = ProfileCardPadding * app->scale;
+        float icon_size = ProfileIconSize * app->scale;
+        float badge_size = BrowserBadgeSize * app->scale;
+        float spacing = ProfileCardSpacing * app->scale;
+        
+        float x, y;
+        w::get_pos(x, y);
+
+        // Calculate grid layout
+        int profile_count = b.instances.size();
+        int rows = (profile_count + ProfilesPerRow - 1) / ProfilesPerRow;
+        int cols = min(profile_count, ProfilesPerRow);
+        
+        // Calculate total width and centering
+        float total_width = cols * card_size + (cols - 1) * spacing;
+        float start_x = (wnd_width - total_width) / 2;
+        
+        // Resize profiles_cb to match instance count
+        if(profiles_cb.size() != b.instances.size()) {
+            profiles_cb.resize(b.instances.size());
+        }
+
+        int idx = 0;
+        for(int row = 0; row < rows; row++) {
+            for(int col = 0; col < cols && idx < profile_count; col++) {
+                auto& profile = b.instances[idx];
+                
+                float card_x = start_x + col * (card_size + spacing);
+                float card_y = y + row * (card_size + spacing);
+                
+                // Draw profile card background
+                w::set_pos(card_x, card_y);
+                ImGui::Dummy(ImVec2(card_size, card_size));
+                
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                ImVec2 card_min = ImGui::GetItemRectMin();
+                ImVec2 card_max = ImGui::GetItemRectMax();
+                
+                // Card background and border
+                bool is_hovered = w::is_hovered();
+                bool is_selected = idx == active_profile_idx;
+                profile->ui_is_hovered = is_hovered;
+                
+                ImU32 card_bg_color = is_selected ? 
+                    w::imcol32(ImGuiCol_ButtonActive) : 
+                    (is_hovered ? w::imcol32(ImGuiCol_ButtonHovered) : w::imcol32(ImGuiCol_Button));
+                
+                ImU32 border_color = is_selected ? 
+                    w::imcol32(ImGuiCol_ButtonActive) : 
+                    w::imcol32(ImGuiCol_Border);
+                
+                // Draw card with rounded corners
+                float rounding = 8.0f * app->scale;
+                dl->AddRectFilled(card_min, card_max, card_bg_color, rounding);
+                dl->AddRect(card_min, card_max, border_color, rounding, 0, 1.0f);
+                
+                // Draw profile icon (centered in card)
+                float icon_x = card_x + (card_size - icon_size) / 2;
+                float icon_y = card_y + card_padding;
+                
+                w::set_pos(icon_x, icon_y);
+                
+                if(profile->is_incognito) {
+                    w::image(*app, "incognito", icon_size, icon_size);
+                } else {
+                    string path = profile->get_best_icon_path();
+                    w::rounded_image(*app, path, icon_size, icon_size, icon_size / 2);
+                }
+                
+                // Draw browser badge in bottom-left corner
+                float badge_x = card_x + card_padding;
+                float badge_y = card_y + card_size - badge_size - card_padding;
+                
+                w::set_pos(badge_x, badge_y);
+                string browser_icon_path = b.get_best_icon_path();
+                w::rounded_image(*app, browser_icon_path, badge_size, badge_size, badge_size / 2);
+                
+                // Draw profile name below icon
+                float name_y = icon_y + icon_size + card_padding / 2;
+                float name_height = ImGui::GetTextLineHeight();
+                
+                // Truncate long names
+                string display_name = profile->name;
+                if(display_name.length() > 12) {
+                    display_name = display_name.substr(0, 9) + "...";
+                }
+                
+                // Center text horizontally
+                ImVec2 text_size = ImGui::CalcTextSize(display_name.c_str());
+                float text_x = card_x + (card_size - text_size.x) / 2;
+                
+                w::set_pos(text_x, name_y);
+                ImGui::TextUnformatted(display_name.c_str());
+                
+                // Handle interactions
+                w::set_pos(card_x, card_y);
+                ImGui::Dummy(ImVec2(card_size, card_size));
+                
+                if(is_hovered) {
+                    active_profile_idx = idx;
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                }
+                
+                w::tooltip(profile->name);
+                
+                bool is_keyed = keyboard_selection_idx == idx;
+                bool is_clicked = w::is_leftclicked();
+                if(is_clicked || is_keyed) {
+                    make_decision(profile);
+                }
+                
+                // Store card bounds for connection lines
+                profiles_cb[idx] = {card_min, card_max};
+                
+                idx++;
+            }
+        }
+        
+        // Update window position after profile grid
+        w::set_pos(0, y + rows * (card_size + spacing));
     }
 }
