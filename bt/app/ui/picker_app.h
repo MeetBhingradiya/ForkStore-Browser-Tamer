@@ -1,7 +1,8 @@
 #pragma once
-#include "../../../common/grey/grey.h"
-#include "../../browser.h"
-#include "../../browser_instance.h"
+#include <vector>
+#include <memory>
+#include "grey.h"
+#include "../browser.h"
 
 namespace bt::ui {
 
