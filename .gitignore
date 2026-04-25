@@ -1,7 +1,7 @@
 .vs/
 .idea/
 out/
-build/
+build*/
 bin/
 obj/
 vcpkg_installed/

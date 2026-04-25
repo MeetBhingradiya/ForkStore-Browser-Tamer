@@ -2,6 +2,7 @@
 #include "../../globals.h"
 #include "../../res.inl"
 #include "btwidgets.h"
+#include "fluent2_theme.h"
 
 using namespace std;
 namespace w = grey::widgets;
@@ -28,6 +29,10 @@ namespace bt::ui {
             .no_scroll();
 
         app->on_initialised = [this]() {
+            g_config.theme_id = normalize_fluent2_theme_id(g_config.theme_id);
+            app->set_theme(g_config.theme_id);
+            apply_fluent2_theme(g_config.theme_id, app->scale);
+
             app->preload_texture("logo", icon_png, icon_png_len);
             btw_on_app_initialised(*app);
 

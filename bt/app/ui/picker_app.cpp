@@ -10,6 +10,7 @@
 #include "../../common/win32/os.h"
 #include "../../common/win32/shell.h"
 #include "btwidgets.h"
+#include "fluent2_theme.h"
 
 using namespace std;
 namespace w = grey::widgets;
@@ -41,6 +42,10 @@ namespace bt::ui {
         choices = browser::to_instances(g_config.browsers, true);
 
         app->on_initialised = [this]() {
+            g_config.theme_id = normalize_fluent2_theme_id(g_config.theme_id);
+            app->set_theme(g_config.theme_id);
+            apply_fluent2_theme(g_config.theme_id, app->scale);
+
             btw_on_app_initialised(*app);
 
             wnd_main
@@ -271,6 +276,7 @@ namespace bt::ui {
             auto& p = choices[i];
             bool is_active = (i == active_idx);
             if(i > 0) w::sl();
+            bool item_hovered = false;
 
             {
                 w::group g;
@@ -278,6 +284,20 @@ namespace bt::ui {
                 // render icon and come back to starting position
                 float x0, y0;
                 w::cur_get(x0, y0);
+
+                ImVec2 r0{x0, y0};
+                ImVec2 r1{x0 + box_size, y0 + box_size};
+                item_hovered = ImGui::IsMouseHoveringRect(r0, r1, true);
+
+                auto* dl = ImGui::GetWindowDrawList();
+                const float corner = ImGui::GetStyle().FrameRounding;
+                if(is_active) {
+                    dl->AddRectFilled(r0, r1, ImGui::GetColorU32(ImGuiCol_HeaderActive), corner);
+                    dl->AddRect(r0, r1, ImGui::GetColorU32(ImGuiCol_CheckMark), corner, 0, 1.4f);
+                } else if(item_hovered) {
+                    dl->AddRectFilled(r0, r1, ImGui::GetColorU32(ImGuiCol_HeaderHovered), corner);
+                    dl->AddRect(r0, r1, ImGui::GetColorU32(ImGuiCol_Border), corner, 0, 1.0f);
+                }
 
                 btw_icon(*app, p, padding, icon_size, is_active);
 
@@ -300,12 +320,12 @@ namespace bt::ui {
                
             }
 
-            if(w::is_hovered()) {
+            if(item_hovered) {
                 active_idx = (int)i;
                 w::mouse_cursor(w::mouse_cursor_type::hand);
             }
 
-            if(w::is_leftclicked()) {
+            if(item_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 decision = choices[active_idx];
                 is_open = false;
             }

@@ -18,6 +18,7 @@
 #include "extra_widgets.hpp"
 #include "datetime.h"
 #include <algorithm>
+#include "fluent2_theme.h"
 
 using namespace std;
 namespace w = grey::widgets;
@@ -74,6 +75,10 @@ namespace bt::ui {
         w_script_top_panel = w::container{0, 250 * app->scale}.resize_y();
 
         app->on_initialised = [this]() {
+            g_config.theme_id = normalize_fluent2_theme_id(g_config.theme_id);
+            app->set_theme(g_config.theme_id);
+            apply_fluent2_theme(g_config.theme_id, app->scale);
+
             app->preload_texture("logo", icon_png, icon_png_len);
             app->preload_texture("incognito", incognito_icon_png, incognito_icon_png_len);
             app->preload_texture("bt_chromium", chromium_icon_png, chromium_icon_png_len);
@@ -253,10 +258,24 @@ namespace bt::ui {
                     w::slider(g_config.toast_border_width, 0, 6, "border width");
                 }
 
-                w::mi_themes([this](const string& theme_id) {
-                    app->set_theme(theme_id);
-                    g_config.theme_id = theme_id;
-                });
+                if(w::menu m_theme{"Theme", true, ICON_MD_BRUSH}; m_theme) {
+                    auto set_fluent_theme = [this](const string& requested_theme_id) {
+                        const string theme_id = normalize_fluent2_theme_id(requested_theme_id);
+                        app->set_theme(theme_id);
+                        apply_fluent2_theme(theme_id, app->scale);
+                        g_config.theme_id = theme_id;
+                    };
+
+                    if(w::mi("Fluent 2 (Follow OS)")) {
+                        set_fluent_theme(grey::themes::FollowOsThemeId);
+                    }
+                    if(w::mi("Fluent 2 Dark")) {
+                        set_fluent_theme("dark");
+                    }
+                    if(w::mi("Fluent 2 Light")) {
+                        set_fluent_theme("light");
+                    }
+                }
             }
 
             if(w::menu m{"Picker"}; m) {
@@ -913,7 +932,10 @@ namespace bt::ui {
         if(w::is_hovered() || is_selected) {
             ImDrawList* fdl = ImGui::GetWindowDrawList();
             auto style = ImGui::GetStyle();
-            fdl->AddRect(item_rect.lt(), item_rect.rb(), w::imcol32(ImGuiCol_Border), style.FrameRounding, 0, style.WindowBorderSize * 2);
+            ImU32 fill_col = w::imcol32(is_selected ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered);
+            ImU32 border_col = w::imcol32(is_selected ? ImGuiCol_CheckMark : ImGuiCol_Border);
+            fdl->AddRectFilled(item_rect.lt(), item_rect.rb(), fill_col, style.FrameRounding);
+            fdl->AddRect(item_rect.lt(), item_rect.rb(), border_col, style.FrameRounding, 0, is_selected ? 1.5f : 1.0f);
         }
     }
 
